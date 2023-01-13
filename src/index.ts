@@ -10,6 +10,7 @@ import {
 import * as fs from "fs"
 
 const tokenName = "Token Name"
+const tokenNameUpdate = "Updated Name"
 const description = "Description"
 const symbol = "SYMBOL"
 const sellerFeeBasisPoints = 100
@@ -43,27 +44,19 @@ async function main() {
   console.log("image uri:", imageUri)
 
   // upload metadata and get metadata uri (off chain metadata)
-  const { uri } = await metaplex
-    .nfts()
-    .uploadMetadata({
-      name: tokenName,
-      description: description,
-      image: imageUri,
-    })
-    .run()
+  const { uri } = await metaplex.nfts().uploadMetadata({
+    name: tokenName,
+    description: description,
+    image: imageUri,
+  })
 
   console.log("metadata uri:", uri)
 
   // create nft helper function
-  await createNft(metaplex, uri)
-
-  // mint address of existing NFT
-  const mintAddress = new PublicKey(
-    "BwichicTJSM2SfrRyzjCeU6uzrFGsvyBNX614CZLDbog"
-  )
+  const nft = await createNft(metaplex, uri)
 
   // update nft helper function
-  await updateNft(metaplex, uri, mintAddress)
+  await updateNft(metaplex, uri, nft.address)
 }
 
 // create NFT
@@ -71,15 +64,15 @@ async function createNft(
   metaplex: Metaplex,
   uri: string
 ): Promise<NftWithToken> {
-  const { nft } = await metaplex
-    .nfts()
-    .create({
+  const { nft } = await metaplex.nfts().create(
+    {
       uri: uri,
       name: tokenName,
       sellerFeeBasisPoints: sellerFeeBasisPoints,
       symbol: symbol,
-    })
-    .run()
+    },
+    { commitment: "finalized" }
+  )
 
   console.log(
     `Token Mint: https://explorer.solana.com/address/${nft.address.toString()}?cluster=devnet`
@@ -95,19 +88,19 @@ async function updateNft(
   mintAddress: PublicKey
 ) {
   // get "NftWithToken" type from mint address
-  const nft = await metaplex.nfts().findByMint({ mintAddress }).run()
+  const nft = await metaplex.nfts().findByMint({ mintAddress })
 
   // omit any fields to keep unchanged
-  await metaplex
-    .nfts()
-    .update({
+  await metaplex.nfts().update(
+    {
       nftOrSft: nft,
-      name: tokenName,
+      name: tokenNameUpdate,
       symbol: symbol,
       uri: uri,
       sellerFeeBasisPoints: sellerFeeBasisPoints,
-    })
-    .run()
+    },
+    { commitment: "finalized" }
+  )
 
   console.log(
     `Token Mint: https://explorer.solana.com/address/${nft.address.toString()}?cluster=devnet`
