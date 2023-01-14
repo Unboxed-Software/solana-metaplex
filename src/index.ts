@@ -17,6 +17,7 @@ interface NftData {
   imageFile: string
 }
 
+// example data for a new NFT
 const nftData = {
   name: "Name",
   symbol: "SYMBOL",
@@ -25,6 +26,7 @@ const nftData = {
   imageFile: "solana.png",
 }
 
+// example data for updating an existing NFT
 const updateNftData = {
   name: "Update",
   symbol: "UPDATE",
@@ -34,7 +36,10 @@ const updateNftData = {
 }
 
 async function main() {
+  // create a new connection to the cluster's API
   const connection = new Connection(clusterApiUrl("devnet"))
+
+  // initialize a keypair for the user
   const user = await initializeKeypair(connection)
 
   console.log("PublicKey:", user.publicKey.toBase58())
@@ -50,18 +55,21 @@ async function main() {
       })
     )
 
-  const uri = await uploadNFT(metaplex, nftData)
+  // upload the NFT data and get the URI for the metadata
+  const uri = await uploadMetadata(metaplex, nftData)
 
-  // create nft helper function
+  // create an NFT using the helper function and the URI from the metadata
   const nft = await createNft(metaplex, uri, nftData)
 
-  const updatedUri = await uploadNFT(metaplex, updateNftData)
+  // upload updated NFT data and get the new URI for the metadata
+  const updatedUri = await uploadMetadata(metaplex, updateNftData)
 
-  // update nft helper function
+  // update the NFT using the helper function and the new URI from the metadata
   await updateNft(metaplex, updatedUri, nft.address, updateNftData)
 }
 
-async function uploadNFT(
+// helper function to upload image and metadata
+async function uploadMetadata(
   metaplex: Metaplex,
   nftData: NftData
 ): Promise<string> {
@@ -81,13 +89,14 @@ async function uploadNFT(
     symbol: nftData.symbol,
     description: nftData.description,
     image: imageUri,
+    test: "test",
   })
 
   console.log("metadata uri:", uri)
   return uri
 }
 
-// create NFT
+// helper function create NFT
 async function createNft(
   metaplex: Metaplex,
   uri: string,
@@ -95,7 +104,7 @@ async function createNft(
 ): Promise<NftWithToken> {
   const { nft } = await metaplex.nfts().create(
     {
-      uri: uri,
+      uri: uri, // metadata URI
       name: nftData.name,
       sellerFeeBasisPoints: nftData.sellerFeeBasisPoints,
       symbol: nftData.symbol,
@@ -110,18 +119,18 @@ async function createNft(
   return nft
 }
 
-// update NFT metadata
+// helper function update NFT
 async function updateNft(
   metaplex: Metaplex,
   uri: string,
   mintAddress: PublicKey,
   nftData: NftData
 ) {
-  // get "NftWithToken" type from mint address
+  // fetch NFT data using mint address
   const nft = await metaplex.nfts().findByMint({ mintAddress })
 
-  // omit any fields to keep unchanged
-  await metaplex.nfts().update(
+  // update the NFT metadata
+  const { response } = await metaplex.nfts().update(
     {
       nftOrSft: nft,
       symbol: nftData.symbol,
@@ -134,6 +143,10 @@ async function updateNft(
 
   console.log(
     `Token Mint: https://explorer.solana.com/address/${nft.address.toString()}?cluster=devnet`
+  )
+
+  console.log(
+    `Transaction: https://explorer.solana.com/tx/${response.signature}?cluster=devnet`
   )
 }
 
