@@ -9,12 +9,29 @@ import {
 } from "@metaplex-foundation/js"
 import * as fs from "fs"
 
-const tokenName = "Token Name"
-const tokenNameUpdate = "Updated Name"
-const description = "Description"
-const symbol = "SYMBOL"
-const sellerFeeBasisPoints = 100
-const imageFile = "test.png"
+interface NftData {
+  name: string
+  symbol: string
+  description: string
+  sellerFeeBasisPoints: number
+  imageFile: string
+}
+
+const nftData = {
+  name: "Name",
+  symbol: "SYMBOL",
+  description: "Description",
+  sellerFeeBasisPoints: 0,
+  imageFile: "solana.png",
+}
+
+const updateNftData = {
+  name: "Update",
+  symbol: "UPDATE",
+  description: "Update Description",
+  sellerFeeBasisPoints: 100,
+  imageFile: "success.png",
+}
 
 async function main() {
   const connection = new Connection(clusterApiUrl("devnet"))
@@ -33,11 +50,26 @@ async function main() {
       })
     )
 
+  const uri = await uploadNFT(metaplex, nftData)
+
+  // create nft helper function
+  const nft = await createNft(metaplex, uri, nftData)
+
+  const updatedUri = await uploadNFT(metaplex, updateNftData)
+
+  // update nft helper function
+  await updateNft(metaplex, updatedUri, nft.address, updateNftData)
+}
+
+async function uploadNFT(
+  metaplex: Metaplex,
+  nftData: NftData
+): Promise<string> {
   // file to buffer
-  const buffer = fs.readFileSync("src/" + imageFile)
+  const buffer = fs.readFileSync("src/" + nftData.imageFile)
 
   // buffer to metaplex file
-  const file = toMetaplexFile(buffer, imageFile)
+  const file = toMetaplexFile(buffer, nftData.imageFile)
 
   // upload image and get image uri
   const imageUri = await metaplex.storage().upload(file)
@@ -45,31 +77,28 @@ async function main() {
 
   // upload metadata and get metadata uri (off chain metadata)
   const { uri } = await metaplex.nfts().uploadMetadata({
-    name: tokenName,
-    description: description,
+    name: nftData.name,
+    symbol: nftData.symbol,
+    description: nftData.description,
     image: imageUri,
   })
 
   console.log("metadata uri:", uri)
-
-  // create nft helper function
-  const nft = await createNft(metaplex, uri)
-
-  // update nft helper function
-  await updateNft(metaplex, uri, nft.address)
+  return uri
 }
 
 // create NFT
 async function createNft(
   metaplex: Metaplex,
-  uri: string
+  uri: string,
+  nftData: NftData
 ): Promise<NftWithToken> {
   const { nft } = await metaplex.nfts().create(
     {
       uri: uri,
-      name: tokenName,
-      sellerFeeBasisPoints: sellerFeeBasisPoints,
-      symbol: symbol,
+      name: nftData.name,
+      sellerFeeBasisPoints: nftData.sellerFeeBasisPoints,
+      symbol: nftData.symbol,
     },
     { commitment: "finalized" }
   )
@@ -85,7 +114,8 @@ async function createNft(
 async function updateNft(
   metaplex: Metaplex,
   uri: string,
-  mintAddress: PublicKey
+  mintAddress: PublicKey,
+  nftData: NftData
 ) {
   // get "NftWithToken" type from mint address
   const nft = await metaplex.nfts().findByMint({ mintAddress })
@@ -94,10 +124,10 @@ async function updateNft(
   await metaplex.nfts().update(
     {
       nftOrSft: nft,
-      name: tokenNameUpdate,
-      symbol: symbol,
+      symbol: nftData.symbol,
+      name: nftData.name,
       uri: uri,
-      sellerFeeBasisPoints: sellerFeeBasisPoints,
+      sellerFeeBasisPoints: nftData.sellerFeeBasisPoints,
     },
     { commitment: "finalized" }
   )
