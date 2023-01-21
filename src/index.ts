@@ -1,5 +1,5 @@
 import { initializeKeypair } from "./initializeKeypair"
-import { Connection, clusterApiUrl, PublicKey } from "@solana/web3.js"
+import { Connection, clusterApiUrl, PublicKey, Signer } from "@solana/web3.js"
 import {
   Metaplex,
   keypairIdentity,
@@ -15,6 +15,16 @@ interface NftData {
   description: string
   sellerFeeBasisPoints: number
   imageFile: string
+}
+
+interface CollectionNftData {
+  name: string
+  symbol: string
+  description: string
+  sellerFeeBasisPoints: number
+  imageFile: string
+  isCollection: boolean
+  collectionAuthority: Signer
 }
 
 // example data for a new NFT
